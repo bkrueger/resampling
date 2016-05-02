@@ -76,7 +76,7 @@ def jackknife(a, func=identity, func_axis=None, dtype=None):
     a : array_like
         Array containing numbers whose jackknife mean and error is desired. 
         If `a` is not an array, a conversion is attempted.
-    func: callable function. optional
+    func: callable function, optional
         (Ususally non-linear) Function that maps a scalar to a scalar (or number to a number), whichs is applied to each jackknife mean value. (The default is the identity function.)
     dtype : data-type, optional
         Type to use in computing the jackknife mean and error. 
@@ -105,15 +105,16 @@ def jackknife(a, func=identity, func_axis=None, dtype=None):
     .. [2] J. W. Tukey: Bias and confidence in not quite large samples. Annls. Math. Stat. 29, S. 614 (1958)
 
     """
-    # Calculate the number of independent measurements
+    # Calculate the number of measurements
     n = __number_measurements(a, func_axis)
+    # Evaluate the function on the jackknife means
     jackknife_values = [func(*(__array_mean_indices(a, range(0,i) + range(i+1, n), func_axis=func_axis, dtype=dtype))) for i in range(n)]
 
     # Return the average value and the error of this averaged value
     return numpy.mean(jackknife_values), math.sqrt(n - 1)*numpy.std(jackknife_values)
 
 
-def bootstrap(a, iterations, func=identity, dtype=None):
+def bootstrap(a, iterations, func=identity, func_axis=None, dtype=None):
     """
     Compute the bootstrap mean and error of an array with respect to a given function.
 
@@ -140,9 +141,10 @@ def bootstrap(a, iterations, func=identity, dtype=None):
     (True, True)
 
     """
-    # Bootstrap for the whole array
-    n = len(a)
-    bootstrap_values = numpy.fromiter((func(numpy.mean(a[numpy.random.randint(0, high=n, size=n)], dtype=dtype)) for i in range(iterations)), numpy.float)
+    # Calculate the number of measurements
+    n = __number_measurements(a, func_axis)
+    # Evaluate the function on the bootstrap means
+    bootstrap_values = [func(*(__array_mean_indices(a, numpy.random.randint(0, high=n, size=n), func_axis=func_axis, dtype=dtype))) for i in range(iterations)]
 
     # Return the average value and the error of this averaged value
     return numpy.mean(bootstrap_values), math.sqrt(float(iterations)/float(iterations - 1))*numpy.std(bootstrap_values)
@@ -177,9 +179,10 @@ def subsampling(a, samples, iterations, func=identity, func_axis=None, dtype=Non
     (True, True)
 
     """
-    # Subsampling for the whole array
-    n = len(a)
-    subsampling_values = numpy.fromiter((func(numpy.mean(numpy.random.permutation(a)[0:samples], dtype=dtype)) for i in range(iterations)), numpy.float)
+    # Calculate the number of measurements
+    n = __number_measurements(a, func_axis)
+    # Evaluate the function on the subsampling means
+    subsampling_values = [func(*(__array_mean_indices(a, numpy.random.permutation(range(n))[0:samples], func_axis=func_axis, dtype=dtype))) for i in range(iterations)]
 
     # Return the average value and the error of this averaged value
     return numpy.mean(subsampling_values), math.sqrt(float(samples)/float(iterations*(iterations - 1)))*numpy.std(subsampling_values)
