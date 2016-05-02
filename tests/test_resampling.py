@@ -1,3 +1,7 @@
+# This file is part of the resampling package that can be found at https://github.com/bkrueger/resampling 
+# Copyright (c) 2015 Benedikt Krüger
+# Resampling is published under the MIT license, see https://opensource.org/licenses/MIT or the LICENSE file in the root directory of the project
+
 import sys
 sys.path.append('../')
 

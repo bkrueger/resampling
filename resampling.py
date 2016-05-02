@@ -1,3 +1,7 @@
+# This file is part of the resampling package that can be found at https://github.com/bkrueger/resampling 
+# Copyright (c) 2015 Benedikt Krüger
+# Resampling is published under the MIT license, see https://opensource.org/licenses/MIT or the LICENSE file in the root directory of the project
+
 """The module resampling can be used for estimating errors of of non-linear functions of random measurements.
 
 It can be used mainly for the analysis of Markov chain Monte Carlo methods.
