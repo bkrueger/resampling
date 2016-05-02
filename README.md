@@ -39,3 +39,7 @@ a = numpy.random.random(200)
 squared_mean_a, squared_mean_a_error = resampling.jackknife(a, func=lambda x: x**2)
 
 ```
+
+## Documentation
+
+The full documentation of all functions can be found [here](http://bkrueger.github.io/resampling/).
