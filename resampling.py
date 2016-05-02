@@ -12,7 +12,7 @@ import numpy.random
 # How to apply a function over different axis
 # numpy.apply_over_axes(numpy.sum, a, [0,2])
 
-def __array_mean(a, indices, func_axis=None, dtype=None):
+def __array_mean_indices(a, indices, func_axis=None, dtype=None):
     """Calculates the mean of an array using the given indices and the optional function axis.
     
     If no function axis is given, the function calculates the mean of the array at the given indices.
@@ -38,9 +38,17 @@ def __array_mean(a, indices, func_axis=None, dtype=None):
     
     """
     if func_axis == None:
-        return numpy.mean(a.flat[indices], dtype=dtype)
+        return (numpy.mean(a.flat[indices], dtype=dtype), )
     else:
         return tuple(numpy.mean(numpy.reshape(numpy.take(a, [j,], axis=func_axis), -1)[indices]) for j in range(a.shape[func_axis]))
+
+def __number_measurements(a, func_axis=None):
+    """ Calculates the number of measurements of an array from the array and the function axis.
+    """
+    if func_axis == None:
+        return a.size
+    else:
+        return a.size / a.shape[func_axis]
 
 def identity(x):
     """
@@ -97,16 +105,9 @@ def jackknife(a, func=identity, func_axis=None, dtype=None):
     .. [2] J. W. Tukey: Bias and confidence in not quite large samples. Annls. Math. Stat. 29, S. 614 (1958)
 
     """
-    # Jackknife for the whole array
-    if (func_axis == None):
-        n = len(a)
-        jackknife_values = numpy.fromiter((func(numpy.mean(a[range(0, i) + range(i+1, n)], dtype=dtype)) for i in range(n)), numpy.float)
-    else:
-        # Number of arguments for the function
-        k = a.shape[func_axis]
-        # Number of datapoints
-        n = a.size / k
-        jackknife_values = [func(*tuple(numpy.mean(numpy.reshape(numpy.take(a, [j,], axis=func_axis), -1)[range(0,i) + range(i+1, n)]) for j in range(k))) for i in range(n)]
+    # Calculate the number of independent measurements
+    n = __number_measurements(a, func_axis)
+    jackknife_values = [func(*(__array_mean_indices(a, range(0,i) + range(i+1, n), func_axis=func_axis, dtype=dtype))) for i in range(n)]
 
     # Return the average value and the error of this averaged value
     return numpy.mean(jackknife_values), math.sqrt(n - 1)*numpy.std(jackknife_values)
