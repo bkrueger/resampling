@@ -78,6 +78,9 @@ def jackknife(a, func=identity, func_axis=None, dtype=None):
         If `a` is not an array, a conversion is attempted.
     func: callable function, optional
         (Ususally non-linear) Function that maps a scalar to a scalar (or number to a number), whichs is applied to each jackknife mean value. (The default is the identity function.)
+    func_axis: integer, optional
+        Axis of the array that is used to seperate different independent measurements for usage in a function with more than one argument.
+        The shape of this axis must match the number of arguments of the given function func.
     dtype : data-type, optional
         Type to use in computing the jackknife mean and error. 
         (For integer inputs, the default is `float64`; for floating point inputs, it is the same as the input dtype.)
@@ -127,6 +130,9 @@ def bootstrap(a, iterations, func=identity, func_axis=None, dtype=None):
         Number of bootstrap iterations to execute.
     func: callable function
         (Ususally non-linear) Function that maps a scalar to a scalar (or number to a number), whichs is applied to each jackknife mean value.
+    func_axis: integer, optional
+        Axis of the array that is used to seperate different independent measurements for usage in a function with more than one argument.
+        The shape of this axis must match the number of arguments of the given function func.
     dtype : data-type, optional
         Type to use in computing the jackknife mean and error. 
         For integer inputs, the default is `float64`; for floating point inputs, it is the same as the input dtype.
@@ -165,6 +171,9 @@ def subsampling(a, samples, iterations, func=identity, func_axis=None, dtype=Non
         Number of samples from the data set to include into the subsampling
     func: callable function
         (Ususally non-linear) Function that maps a scalar to a scalar (or number to a number), whichs is applied to each jackknife mean value.
+    func_axis: integer, optional
+        Axis of the array that is used to seperate different independent measurements for usage in a function with more than one argument.
+        The shape of this axis must match the number of arguments of the given function func.
     dtype : data-type, optional
         Type to use in computing the jackknife mean and error. 
         For integer inputs, the default is `float64`; for floating point inputs, it is the same as the input dtype.
