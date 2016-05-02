@@ -1,0 +1,296 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>resampling &mdash; resampling 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="resampling 0.1 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">resampling 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for resampling</h1><div class="highlight"><pre>
+<span class="c"># This file is part of the resampling package that can be found at https://github.com/bkrueger/resampling </span>
+<span class="c"># Copyright (c) 2015 Benedikt Krueger</span>
+<span class="c"># Resampling is published under the MIT license, see https://opensource.org/licenses/MIT or the LICENSE file in the root directory of the project</span>
+
+<span class="sd">&quot;&quot;&quot;The module resampling can be used for estimating errors of of non-linear functions of random measurements.</span>
+
+<span class="sd">It can be used mainly for the analysis of Markov chain Monte Carlo methods.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">numpy.random</span>
+
+<span class="c"># Note:</span>
+<span class="c"># How to apply a function over different axis</span>
+<span class="c"># numpy.apply_over_axes(numpy.sum, a, [0,2])</span>
+
+<span class="k">def</span> <span class="nf">__array_mean_indices</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">func_axis</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculates the mean of an array using the given indices and the optional function axis.</span>
+<span class="sd">    </span>
+<span class="sd">    If no function axis is given, the function calculates the mean of the array at the given indices.</span>
+<span class="sd">    If a function axis is given, the function calculates the mean of the array at the given indices for each entry in the function axis seperatly and returns a tuple of means.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : array_like</span>
+<span class="sd">        Array containing numbers whose jackknife mean and error is desired. </span>
+<span class="sd">        If `a` is not an array, a conversion is attempted.</span>
+<span class="sd">    indices : array_like</span>
+<span class="sd">        One-dimensional list of integer values between 0 and a.size for func_axis = None, or 0 and a.size / a.shape[func_axis] for func_axis != None.</span>
+<span class="sd">        The mean is calculated using this flat indices.</span>
+<span class="sd">    dtype : data-type, optional</span>
+<span class="sd">        Type to use in computing the jackknife mean and error. </span>
+<span class="sd">        (For integer inputs, the default is `float64`; for floating point inputs, it is the same as the input dtype.)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mean_value: tuple</span>
+<span class="sd">        Tuple containing the means of the dimensions of the function axis.</span>
+<span class="sd">        If func_axis == None, the tuple contains only one argument.</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">func_axis</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">flat</span><span class="p">[</span><span class="n">indices</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="p">[</span><span class="n">j</span><span class="p">,],</span> <span class="n">axis</span><span class="o">=</span><span class="n">func_axis</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">indices</span><span class="p">])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">func_axis</span><span class="p">]))</span>
+
+<span class="k">def</span> <span class="nf">__number_measurements</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">func_axis</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Calculates the number of measurements of an array from the array and the function axis.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">func_axis</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">size</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">size</span> <span class="o">/</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">func_axis</span><span class="p">]</span>
+
+<div class="viewcode-block" id="identity"><a class="viewcode-back" href="../index.html#resampling.identity">[docs]</a><span class="k">def</span> <span class="nf">identity</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identity function used as default function in the resampling methods.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">x</span>
+</div>
+<div class="viewcode-block" id="jackknife"><a class="viewcode-back" href="../index.html#resampling.jackknife">[docs]</a><span class="k">def</span> <span class="nf">jackknife</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">identity</span><span class="p">,</span> <span class="n">func_axis</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot; Compute the jackknife mean and error of an array (with :math:`N` values) with respect to a given function :math:`f`.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The single jackknife values are calculated by</span>
+
+<span class="sd">    .. math:: \overline{x_i} = \frac{1}{N} \sum_{j \neq i} x_j,</span>
+
+<span class="sd">    and the mean :math:`\overline f` and the error :math:`\sigma_{\overline f}` of the function :math:`f` are calculated using</span>
+
+<span class="sd">    .. math:: \overline f &amp;= \frac{1}{N} \sum_i f(\overline{x_i}) \\ \sigma_{\overline f} &amp;= \sqrt{\frac{N - 1}{N}} \cdot \sqrt{\sum_i \left( f(\overline{x_i})^2 - \overline f ^2 \right) }</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : array_like</span>
+<span class="sd">        Array containing numbers whose jackknife mean and error is desired. </span>
+<span class="sd">        If `a` is not an array, a conversion is attempted.</span>
+<span class="sd">    func: callable function, optional</span>
+<span class="sd">        (Ususally non-linear) Function that maps a scalar to a scalar (or number to a number), whichs is applied to each jackknife mean value. (The default is the identity function.)</span>
+<span class="sd">    func_axis: integer, optional</span>
+<span class="sd">        Axis of the array that is used to seperate different independent measurements for usage in a function with more than one argument.</span>
+<span class="sd">        The shape of this axis must match the number of arguments of the given function func.</span>
+<span class="sd">    dtype : data-type, optional</span>
+<span class="sd">        Type to use in computing the jackknife mean and error. </span>
+<span class="sd">        (For integer inputs, the default is `float64`; for floating point inputs, it is the same as the input dtype.)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    jackknife_mean : dtype</span>
+<span class="sd">        Mean value :math:`\overline f` of the function applied to the data set.</span>
+<span class="sd">    jackknife_error: dtype</span>
+<span class="sd">        Error :math:`\sigma_{\overline f}` of the function applied to the data set.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; a = numpy.array([1.0, 2.0, 3.0, 4.0, 5.0])</span>
+<span class="sd">    &gt;&gt;&gt; jackknife(a)</span>
+<span class="sd">    (3.0, 0.70710678118654757)</span>
+<span class="sd">    &gt;&gt;&gt; jackknife(a, func=lambda x: x**2)</span>
+<span class="sd">    (9.125, 4.247793544888923)</span>
+<span class="sd">    &gt;&gt;&gt; b = numpy.array([[1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 3.0, 5.0, 7.0, 9.0]])</span>
+<span class="sd">    &gt;&gt;&gt; jackknife(b, func=lambda x,y: x*y, func_axis=0)</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] M. H. Quenouille: Notes on bias in estimation. Biometrika, 43, S.353ff (1956)</span>
+<span class="sd">    .. [2] J. W. Tukey: Bias and confidence in not quite large samples. Annls. Math. Stat. 29, S. 614 (1958)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Calculate the number of measurements</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">__number_measurements</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">func_axis</span><span class="p">)</span>
+    <span class="c"># Evaluate the function on the jackknife means</span>
+    <span class="n">jackknife_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">__array_mean_indices</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">func_axis</span><span class="o">=</span><span class="n">func_axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>
+
+    <span class="c"># Return the average value and the error of this averaged value</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">jackknife_values</span><span class="p">),</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">jackknife_values</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="bootstrap"><a class="viewcode-back" href="../index.html#resampling.bootstrap">[docs]</a><span class="k">def</span> <span class="nf">bootstrap</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">iterations</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">identity</span><span class="p">,</span> <span class="n">func_axis</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the bootstrap mean and error of an array with respect to a given function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : array_like</span>
+<span class="sd">        Array containing numbers whose jackknife mean and error is desired. </span>
+<span class="sd">        If `a` is not an array, a conversion is attempted.</span>
+<span class="sd">    iterations: int</span>
+<span class="sd">        Number of bootstrap iterations to execute.</span>
+<span class="sd">    func: callable function</span>
+<span class="sd">        (Ususally non-linear) Function that maps a scalar to a scalar (or number to a number), whichs is applied to each jackknife mean value.</span>
+<span class="sd">    func_axis: integer, optional</span>
+<span class="sd">        Axis of the array that is used to seperate different independent measurements for usage in a function with more than one argument.</span>
+<span class="sd">        The shape of this axis must match the number of arguments of the given function func.</span>
+<span class="sd">    dtype : data-type, optional</span>
+<span class="sd">        Type to use in computing the jackknife mean and error. </span>
+<span class="sd">        For integer inputs, the default is `float64`; for floating point inputs, it is the same as the input dtype.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; a = numpy.random.normal(loc=5.0, scale=2.0, size=1000)</span>
+<span class="sd">    &gt;&gt;&gt; mean_a, error_a = bootstrap(a, 100)</span>
+<span class="sd">    &gt;&gt;&gt; (mean_a &gt; 4.9, mean_a &lt; 5.1)</span>
+<span class="sd">    (True, True)</span>
+<span class="sd">    &gt;&gt;&gt; (error_a &gt; 2.0/math.sqrt(1000 - 1) - 0.01, error_a &lt; 2.0/math.sqrt(1000 - 1) + 0.01)</span>
+<span class="sd">    (True, True)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Calculate the number of measurements</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">__number_measurements</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">func_axis</span><span class="p">)</span>
+    <span class="c"># Evaluate the function on the bootstrap means</span>
+    <span class="n">bootstrap_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">__array_mean_indices</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n</span><span class="p">),</span> <span class="n">func_axis</span><span class="o">=</span><span class="n">func_axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">)]</span>
+
+    <span class="c"># Return the average value and the error of this averaged value</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">bootstrap_values</span><span class="p">),</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">iterations</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">iterations</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">bootstrap_values</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="subsampling"><a class="viewcode-back" href="../index.html#resampling.subsampling">[docs]</a><span class="k">def</span> <span class="nf">subsampling</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">iterations</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">identity</span><span class="p">,</span> <span class="n">func_axis</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the subsampling mean and error of an array with respect to a given function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a : array_like</span>
+<span class="sd">        Array containing numbers whose jackknife mean and error is desired. </span>
+<span class="sd">        If `a` is not an array, a conversion is attempted.</span>
+<span class="sd">    iterations: int</span>
+<span class="sd">        Number of subsampling iterations to execute.</span>
+<span class="sd">    samples: int</span>
+<span class="sd">        Number of samples from the data set to include into the subsampling</span>
+<span class="sd">    func: callable function</span>
+<span class="sd">        (Ususally non-linear) Function that maps a scalar to a scalar (or number to a number), whichs is applied to each jackknife mean value.</span>
+<span class="sd">    func_axis: integer, optional</span>
+<span class="sd">        Axis of the array that is used to seperate different independent measurements for usage in a function with more than one argument.</span>
+<span class="sd">        The shape of this axis must match the number of arguments of the given function func.</span>
+<span class="sd">    dtype : data-type, optional</span>
+<span class="sd">        Type to use in computing the jackknife mean and error. </span>
+<span class="sd">        For integer inputs, the default is `float64`; for floating point inputs, it is the same as the input dtype.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; a = numpy.random.normal(loc=5.0, scale=2.0, size=1000)</span>
+<span class="sd">    &gt;&gt;&gt; mean_a, error_a = subsampling(a, 100, 50)</span>
+<span class="sd">    &gt;&gt;&gt; (mean_a &gt; 4.9, mean_a &lt; 5.1)</span>
+<span class="sd">    (True, True)</span>
+<span class="sd">    &gt;&gt;&gt; (error_a &gt; 2.0/math.sqrt(1000 - 1) - 0.01, error_a &lt; 2.0/math.sqrt(1000 - 1) + 0.01)</span>
+<span class="sd">    (True, True)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Calculate the number of measurements</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">__number_measurements</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">func_axis</span><span class="p">)</span>
+    <span class="c"># Evaluate the function on the subsampling means</span>
+    <span class="n">subsampling_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">__array_mean_indices</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">))[</span><span class="mi">0</span><span class="p">:</span><span class="n">samples</span><span class="p">],</span> <span class="n">func_axis</span><span class="o">=</span><span class="n">func_axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">)]</span>
+
+    <span class="c"># Return the average value and the error of this averaged value</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">subsampling_values</span><span class="p">),</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">iterations</span><span class="o">*</span><span class="p">(</span><span class="n">iterations</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span><span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">subsampling_values</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">resampling 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2016, Benedikt Krüger.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
